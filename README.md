@@ -1,7 +1,7 @@
 <<<<<<< HEAD
 # Repo structure
- ## 1. MEG preprocessing and data anlaysis
- ## 2. fMRI RSA & decoding & temporal generalization
+ ## 1. MEG preprocessing and data anlaysis: RSA & decoding & temporal generalization
+ ## 2. fMRI preprocessing and data anlaysis: RSA & decoding
  ## 3. Fusion analysis
  ## 4. MEG-fMRI and behavioral experimention
 =======
