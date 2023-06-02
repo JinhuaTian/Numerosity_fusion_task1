@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug 27 10:22:51 2021
+Created on Fri Aug 27 10:22:51 2022
 
 @author: tclem
 """
@@ -21,29 +21,24 @@ import time
 #sys.path.append('/nfs/a2/userhome/tianjinhua/workingdir/meg/mne/')
 import mne
 from mne.transforms import Transform
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler()
-
-from numba import jit
-jit(nopython=True,parallel=True) #nopython=True,parallel=True
+#from sklearn.preprocessing import StandardScaler
+#scaler = StandardScaler()
 
 # basic info
 rootDir = '/data/home/nummag01/workingdir/fusion1/fMRI'
 saveDir = '/data/home/nummag01/workingdir/fusion1/fMRI/sepROI'
-#'subj001','subj002','subj003','subj004','subj005','subj006','subj007','subj008','subj009',
-# 'subj010','subj011','subj012','subj013','subj016','subj017','subj018','subj019','subj020'
+# nohup python numerosity_channelDecoding_RSAcalRDM.py > rsa2.out 2>1&1 & 
 subjs = ['subj001','subj002','subj003','subj004','subj005','subj006','subj007','subj008',
  'subj011','subj012','subj016','subj017','subj018','subj019','subj021','subj023','subj024','subj025']
-# nohup python numerosity_channelDecoding_RSAcalRDM.py > rsa2.out 2>1&1 & 
-types = ['num','fa'] # 'num','fa'
-# 'subj001','subj002','subj003','subj004','subj005','subj006','subj007','subj008'
 
-newSamplingRate = 200
+types = ['num','fa'] # 'num','fa'
+# basic info
+newSamplingRate = 500
 labelNum = 45
 levelNum = 9
 tpoints = int(newSamplingRate*0.8) # 80*3
 
-ROInames = ['V3(L)','V3(R)','IPS(L)','SFG(L)'] 
+ROInames = ['V3d(L)','V3d(R)','IPS(L)','SFG(L)'] 
 # roiList = [[1,2,3,4,5,6,16,17],[8,9],[10,11],[14,15],[18,19,20,21,22,23,24],[25]]
 imgNum=9 
 taskNum =2 
@@ -70,7 +65,7 @@ for subjNum in range(len(subjs)):
                     corrMatrix[subjNum,taskN,roi,tx,ty],_ = spearmanr(MEGrdv[subjNum,taskN,tx,ty,:],fMRIrdv[taskN][subjNum,roi,:])
 # average cross subjects
 avgCorrMatrix = np.average(corrMatrix,axis=0)
-
+# plot temporal generalization matrix for each ROI
 for taskNum in range(len(taskTypes)):
     count = 1
     fig1 =plt.figure(figsize=(20,20),dpi=300)
@@ -84,8 +79,6 @@ for taskNum in range(len(taskTypes)):
         tempData = np.flip(avgCorrMatrix[taskNum,roi,:,:],axis=0) # flip upside down 
         pd_data=pd.DataFrame(tempData,index=yTicks,columns=xTicks)
         sns.heatmap(pd_data,cmap='jet',cbar=True, vmin=0, vmax=0.2) # ,vmin=0.2, vmax=0.5*1000/newSamplingRate,could add mask, mask =mask
-        #plt.gca().xaxis.set_major_locator(ticker.FixedLocator([0,100,200,300,400,500,600])) 
-        #plt.gca().yaxis.set_major_locator(ticker.FixedLocator([0,100,200,300,400,500,600]))     
         plt.title('MEG-'+ROInames[roi],fontsize=30)      
         plt.ylabel('Time (ms)',fontsize=20)
         plt.xlabel('Time (ms)',fontsize=20)
@@ -94,7 +87,7 @@ for taskNum in range(len(taskTypes)):
     plt.tight_layout()
     fig1.savefig('matplot_numfa'+taskTypes[taskNum]+'.png')
     plt.show()
-
+# plot RSA-based TG
 rawMEGTG = np.average(MEGrdv,axis=(0,1,4))
 fig1 =plt.figure(figsize=(20,20),dpi=300)    
 #plt.title('Temporal generalization')        
