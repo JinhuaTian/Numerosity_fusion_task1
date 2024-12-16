@@ -85,7 +85,7 @@ for subjid in subjidss:
                 del epoch
         epochs_all = mne.concatenate_epochs(epochs_list)
 
-        epochs_all.crop(tmin=-0.1,tmax=0.7) # -0.1-0.7 # -0.068, 0.732
+        epochs_all.crop(tmin=-0.068,tmax=0.732) # -0.1-0.7s # -0.068, 0.732
 
         # downsample to 500Hz
         epochs_all.resample(
