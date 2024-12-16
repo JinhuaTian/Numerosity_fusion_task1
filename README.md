@@ -14,10 +14,14 @@ PostPressing:
     1. 2tasks x 2labels x 2tasks x 2labels corss decoding
     2. temporal generalization
 3. MVPA2 (RSA)
-    1. calculate RDM
+    3.1 calculate RDM
         model RDM and neural RDM
-    2. perform RSA
-    3. MDS
+    3.2 run RSA
+        3.2.1 model RDM
+            Numerosity_fusion_task1/MEG_analysis/numerosity_channelDecoding_RSAcalRDM_corr.py
+        3.2.2 show RSA results 
+            Numerosity_fusion_task1/MEG_analysis/numerosity_channelDecoding_RSA.py
+    3.3 MDS
 # fMRI_analysis
 1. preprocessing
 2. data preparation
