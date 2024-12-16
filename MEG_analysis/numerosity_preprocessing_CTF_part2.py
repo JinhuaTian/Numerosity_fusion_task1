@@ -34,12 +34,20 @@ import mne
 import joblib
 
 rootDir = '/data/home/nummag01/workingdir/fusion1/MEG4/'
-subjName =  ['subj025'] ## 'subj001''subj002','subj003','subj004','subj005'
+'''
+'subj001','subj002','subj003','subj004','subj005','subj006','subj007','subj008',
+ 'subj011','subj012','subj016','subj017','subj018','subj021','subj023','subj024','subj025',
+ 'subj028','subj029','subj031','subj033','subj034','subj037','subj038','subj040'
+'''
+subjName = ['subj004','subj005','subj006','subj007','subj008',
+ 'subj011','subj012','subj016','subj017','subj018','subj021','subj023','subj024','subj025',
+ 'subj028','subj029','subj031','subj033','subj034','subj037','subj038','subj040'] ## 'subj001''subj002','subj003','subj004','subj005'
 taskName = 'raw'
 ### ICA compo: 9 14 56 62
 # filter parameters
-reject = dict(mag=4e-12) #eog=250e-6, there is no EOG!
-manualInput = True
+# use different parameters for different subjects
+reject = dict(mag=3e-12) #mag=4e-12 eog=250e-6, there is no EOG!  mne: 3e-12 https://mne.tools/stable/generated/mne.Epochs.html#mne.Epochs
+manualInput = True # ICA
 
 from mne.preprocessing import (create_eog_epochs, create_ecg_epochs, compute_proj_ecg, compute_proj_eog)
 for subj in subjName:
@@ -47,80 +55,87 @@ for subj in subjName:
     # name and makedir the save path
     savePath = pj(rootDir, subj, 'preprocessed')
     # load filtered data
-    for i in range(1,16): #range(1,13): # 1~15, 14 in total
+    for i in range(1,15): #range(1,13): # 1~15, 14 in total
         fileName = 'filterEpochTemp_' + str(i) + '.fif'
         filepath = pj(savePath,fileName)
-        raw = read_raw_fif(filepath, preload=True) #allow_maxshield=True,
-        # check the channel quality
-        if i == 1:
-            raw.plot(block = True)
-        # --------------------------------------
-        # 1.2 run ICA and reject artifact components
-        # just remove eye blink, horizontal eye movement and muscle
-        # --------------------------------------
-        from mne.preprocessing import ICA  #, create_eog_epochs, create_ecg_epochs,corrmap
-        ica = ICA() # n_components=90, 
-        ica.fit(raw) # no need to set picks, fitting ICA to 273 channels
-        ica.plot_sources(raw, show_scrollbars=True) #,block=True
-        ica.plot_components() #0 14 17 21 32; 0 1 6; 2 10 32
+        if os.path.exists(filepath):# 14 files or less? check file use: os.path.isfile()
+            raw = read_raw_fif(filepath, preload=True) #allow_maxshield=True,
+            # exclude stimulus channel, do not affect PCA results
+            raw.info["bads"].extend(['UPPT001'])
+            # check the channel quality
+            if i == 1:
+                raw.plot(block = True)
+            # --------------------------------------
+            # 1.2 run ICA and reject artifact components
+            # just remove eye blink, horizontal eye movement and muscle
+            # --------------------------------------
+            from mne.preprocessing import ICA  #, create_eog_epochs, create_ecg_epochs,corrmap
+            ica = ICA(n_components=0.9999) # n_components=90, 
+            ica.fit(raw) # no need to set picks, fitting ICA to 273 channels
+            ica.plot_sources(raw, show_scrollbars=True) #,block=True
+            ica.plot_components() #0 14 17 21 32; 0 1 6; 2 10 32
 
-        #reject ica components from input or from click
-        if manualInput == True:
-            ica_rej = input()
-            print(ica_rej)
-            bad_comps = ica_rej.split(" ")
-            bad_comps = [int(bad_comps[i]) for i in range(len(bad_comps))] #transform str to number
-            #ica.exclude = list(ica_rej)
-            ica_rej = ica.apply(raw,exclude=bad_comps)
-        elif manualInput == False:
-            ica_rej = ica.apply(raw)
-        #plot psd 
-        ica_rej.plot_psd(fmax=400)
-        # --------------------------------------
-        # 1.3 Epoch and reject bad epochs
-        # --------------------------------------
-        # peak-to-peak amplitude rejection parameters
-        # select events and epoch data
-        events = mne.find_events(ica_rej, stim_channel='UPPT001', shortest_event=2,min_duration=0.005)
-        index1 = np.where(events[:,2]==71)[0]
-        index2 = np.where(events[:,2]==72)[0]
-        index = np.append(index1,index2)
-        index=np.append(index,events.shape[0])        
-        NumList = []
-        FaList = []
-        index.sort() # sort the index
-        for jj in range(index.shape[0]):
-            if index1.__contains__(index[jj]):
-                NumList.append(events[index[jj]:index[jj+1],:])
-            elif index2.__contains__(index[jj]):
-                FaList.append(events[index[jj]:index[jj+1],:])
-        NumList = np.concatenate(NumList)
-        FaList = np.concatenate(FaList)
-        session1 = mne.pick_events(NumList, exclude=[49,51,59,61,71,72])
-        sessData1 = mne.Epochs(ica_rej, events=session1, tmin=-0.2, tmax=0.8, baseline=(-0.2, 0), reject=reject, preload=True, detrend=1, verbose=True)
-        sessData1.apply_baseline((-0.2, 0))
-        path1 = pj(savePath,'num'+str(i)+'.fif')
-        sessData1.save(path1, overwrite=True)
+            #reject ica components from input or from click
+            if manualInput == True:
+                ica_rej = input()
+                print(ica_rej)
+                bad_comps = ica_rej.split(" ")
+                bad_comps = [int(bad_comps[i]) for i in range(len(bad_comps))] #transform str to number
+                #ica.exclude = list(ica_rej)
+                ica_rej = ica.apply(raw,exclude=bad_comps)
+            elif manualInput == False:
+                ica_rej = ica.apply(raw)
+            #plot psd 
+            ica_rej.plot_psd(fmax=400)
+            # --------------------------------------
+            # 1.3 Epoch and reject bad epochs
+            # --------------------------------------
+            # peak-to-peak amplitude rejection parameters
+            # select events and epoch data
+            events = mne.find_events(ica_rej, stim_channel='UPPT001', shortest_event=2,min_duration=0.005)
+            index1 = np.where(events[:,2]==71)[0]
+            index2 = np.where(events[:,2]==72)[0]
+            index = np.append(index1,index2)
+            index=np.append(index,events.shape[0])        
+            NumList = []
+            FaList = []
+            index.sort() # sort the index
+            for jj in range(index.shape[0]):
+                if index1.__contains__(index[jj]):
+                    NumList.append(events[index[jj]:index[jj+1],:])
+                elif index2.__contains__(index[jj]):
+                    FaList.append(events[index[jj]:index[jj+1],:])
+            NumList = np.concatenate(NumList)
+            FaList = np.concatenate(FaList)
+            session1 = mne.pick_events(NumList, exclude=[49,51,59,61,71,72])
+            # sessData1 = mne.Epochs(ica_rej, events=session1, tmin=-0.2, tmax=0.8, baseline=(-0.2, 0), reject=reject, preload=True, detrend=1, verbose=True)
+            # sessData1.apply_baseline((-0.2, 0))
+            sessData1 = mne.Epochs(ica_rej, events=session1, tmin=-0.168, tmax=0.832, baseline=(-0.168, 0.032), reject=reject, preload=True, detrend=1, verbose=True)
+            sessData1.apply_baseline((-0.168, 0.032))
+            path1 = pj(savePath,'num'+str(i)+'.fif')
+            sessData1.save(path1, overwrite=True)
 
-        session2 = mne.pick_events(FaList, exclude=[49,51,59,61,71,72])
-        sessData2 = mne.Epochs(ica_rej, events=session2, tmin=-0.2, tmax=0.8, baseline=(-0.2, 0), reject=reject, preload=True, detrend=1, verbose=True)
-        sessData2.apply_baseline((-0.2, 0))
-        path2 = pj(savePath,'fa'+str(i)+'.fif')
-        sessData2.save(path2, overwrite=True)
-        '''
-        # --------------------------------------
-        # 1.3 Reject epochs manually
-        # --------------------------------------
-        #select and annotate bad epoch
-        fig = ica_rej.plot(picks='mag',block=True)
-        #fig.canvas.key_press_event('a')
+            session2 = mne.pick_events(FaList, exclude=[49,51,59,61,71,72])
+            # sessData2 = mne.Epochs(ica_rej, events=session2, tmin=-0.2, tmax=0.8, baseline=(-0.2, 0), reject=reject, preload=True, detrend=1, verbose=True)
+            # sessData2.apply_baseline((-0.2, 0))
+            sessData2 = mne.Epochs(ica_rej, events=session2, tmin=-0.168, tmax=0.832, baseline=(-0.168, 0.032), reject=reject, preload=True, detrend=1, verbose=True)
+            sessData2.apply_baseline((-0.168, 0.032))
+            path2 = pj(savePath,'fa'+str(i)+'.fif')
+            sessData2.save(path2, overwrite=True)
+            '''
+            # --------------------------------------
+            # 1.3 Reject epochs manually
+            # --------------------------------------
+            #select and annotate bad epoch
+            fig = ica_rej.plot(picks='mag',block=True)
+            #fig.canvas.key_press_event('a')
 
-        #apply bad epoch
-        ica_rej.drop_bad()
-        # save the manual rejected file
-        fileName = 'filterEpochICAMr_' + file
-        tempSavename = pj(savePath,fileName)
-        ica_rej.save(tempSavename, overwrite=True)
-        '''
-        del raw, ica_rej
+            #apply bad epoch
+            ica_rej.drop_bad()
+            # save the manual rejected file
+            fileName = 'filterEpochICAMr_' + file
+            tempSavename = pj(savePath,fileName)
+            ica_rej.save(tempSavename, overwrite=True)
+            '''
+            del raw, ica_rej
 print('All Done')
